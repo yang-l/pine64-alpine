@@ -1,0 +1,20 @@
+sudo: required
+
+language: bash
+
+services:
+  - docker
+
+branches:
+  only:
+  - master
+
+before_install:
+  - git clone https://github.com/yang-l/docker-in-travis-ci.git
+  - docker build -t x86_64 -f ./docker-in-travis-ci/Dockerfile.dev.x86_64.ubuntu.xenial ./docker-in-travis-ci/
+
+install:
+  - docker run -i --rm -v $(pwd):/srv x86_64 bash /srv/build-alpine-rootfs.sh x86_64
+
+script:
+  - [ -e ./rootfs.tar.xz ] || exit 1
