@@ -17,4 +17,4 @@ install:
   - docker run -i --rm -v $(pwd):/srv x86_64 bash /srv/build-alpine-rootfs.sh x86_64
 
 script:
-  - [ -e ./rootfs.tar.xz ] || exit 1
+  - bash -c " [ -d rootfs.tar.xz ] || exit 1"
