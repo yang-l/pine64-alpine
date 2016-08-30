@@ -3,4 +3,91 @@
 
 [[https://travis-ci.org/yang-l/pine64-alpine][file:https://travis-ci.org/yang-l/pine64-alpine.svg?branch=master]]
 
-This repository should provide related stuffs to run Alpine on Pine64. It should include building of arm64 rootfs files and dockerfiles to create base Alpine docker images for other repositories.
+This repository should provide related stuffs to run Alpine on Pine64. It builds rootfs files for arm64, also tested for x86_64 as well, to create the base Alpine docker image, which will be served to build minimise services in other repositories.
+
+Unlike the dockerfile files under [[https://github.com/yang-l/docker-in-travis-ci][docker-in-travis-ci]], which are development images and huge in size, this Alpine docker image will be small to reduce resource.
+
+How to use :
+
+- create rootfs tarball
+
+#+BEGIN_SRC bash
+
+root@pine64:/srv/pine64/pine64-alpine# docker run -ti --rm -v $(pwd):/srv aarch64 bash /srv/build-alpine-rootfs.sh
+++ curl -s http://nl.alpinelinux.org/alpine/edge/main/aarch64/APKINDEX.tar.gz
+++ tar -Oxz
+++ grep '^P:apk-tools-static$' -a -A1
+++ cut -d: -f2
+++ tail -n1
+tar: Ignoring unknown extended header keyword 'APK-TOOLS.checksum.SHA1'
+tar: Ignoring unknown extended header keyword 'APK-TOOLS.checksum.SHA1'
+fetch http://nl.alpinelinux.org/alpine/edge/main/aarch64/APKINDEX.tar.gz
+(1/16) Installing musl (1.1.15-r2)
+(2/16) Installing busybox (1.25.0-r5)
+Executing busybox-1.25.0-r5.post-install
+(3/16) Installing alpine-baselayout (3.0.3-r2)
+Executing alpine-baselayout-3.0.3-r2.pre-install
+Executing alpine-baselayout-3.0.3-r2.post-install
+(4/16) Installing openrc (0.21.3-r5)
+Executing openrc-0.21.3-r5.post-install
+(5/16) Installing alpine-conf (3.4.1-r3)
+(6/16) Installing zlib (1.2.8-r2)
+(7/16) Installing libcrypto1.0 (1.0.2h-r1)
+(8/16) Installing libssl1.0 (1.0.2h-r1)
+(9/16) Installing apk-tools (2.6.7-r1)
+(10/16) Installing busybox-suid (1.25.0-r5)
+(11/16) Installing busybox-initscripts (3.0-r6)
+Executing busybox-initscripts-3.0-r6.post-install
+(12/16) Installing scanelf (1.1.6-r0)
+(13/16) Installing musl-utils (1.1.15-r2)
+(14/16) Installing libc-utils (0.7-r1)
+(15/16) Installing alpine-keys (1.2-r0)
+(16/16) Installing alpine-base (3.4.0-r0)
+Executing busybox-1.25.0-r5.trigger
+OK: 2 MiB in 16 packages
+root@pine64:/srv/pine64/pine64-alpine#
+#+END_SRC
+
+Note that the aarch64 image is built by [[https://github.com/yang-l/docker-in-travis-ci/blob/master/Dockerfile.dev.aarch64.ubuntu.latest][this dockerfile]].
+
+- Build aarch64 Docker image
+
+#+BEGIN_SRC bash
+root@pine64:/srv/pine64/pine64-alpine# docker build -t local/alpine -f Dockerfile  .
+Sending build context to Docker daemon 2.344 MB
+Step 1 : FROM scratch
+ --->
+Step 2 : ADD ./rootfs.tar.xz /
+ ---> f2bf78e45dca
+Removing intermediate container 8094f940e8a3
+Step 3 : RUN apk update &&     apk upgrade &&     apk add --update         ca-certificates         curl &&     rm -rf /var/cache/apk/*
+ ---> Running in dc340aac5d22
+fetch http://nl.alpinelinux.org/alpine/edge/main/aarch64/APKINDEX.tar.gz
+v3.4.0-2843-g0a8bfd7 [http://nl.alpinelinux.org/alpine/edge/main]
+OK: 5339 distinct packages available
+OK: 2 MiB in 16 packages
+fetch http://nl.alpinelinux.org/alpine/edge/main/aarch64/APKINDEX.tar.gz
+(1/4) Installing ca-certificates (20160104-r5)
+(2/4) Installing libssh2 (1.7.0-r0)
+(3/4) Installing libcurl (7.50.1-r0)
+(4/4) Installing curl (7.50.1-r0)
+Executing busybox-1.25.0-r5.trigger
+Executing ca-certificates-20160104-r5.trigger
+OK: 2 MiB in 20 packages
+ ---> 3a307a022869
+Removing intermediate container dc340aac5d22
+Successfully built 3a307a022869
+root@pine64:/srv/pine64/pine64-alpine#
+#+END_SRC
+
+To test this image
+
+#+BEGIN_SRC bash
+root@pine64:/srv/pine64/pine64-alpine# docker run -ti --rm local/alpine /bin/sh --help
+BusyBox v1.25.0 (2016-08-11 16:05:05 GMT) multi-call binary.
+
+Usage: sh [-/+OPTIONS] [-/+o OPT]... [-c 'SCRIPT' [ARG0 [ARGS]] / FILE [ARGS]]
+
+Unix shell interpreter
+root@pine64:/srv/pine64/pine64-alpine#
+#+END_SRC
